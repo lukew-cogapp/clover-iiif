@@ -48,3 +48,9 @@ examples/**/html
 .claude
 .vercel
 .env*.local
+
+# 3D-iiify "Save as IIIF" writes baked manifests here at runtime
+public/manifest/baked/
+
+# Vim swap files
+*.swp

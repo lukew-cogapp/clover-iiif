@@ -12,7 +12,10 @@ export default defineConfig({
     },
     environment: "jsdom",
     globals: true,
-    include: ["./src/**/*.{test,tests,spec}.{js,mjs,cjs,ts,tsx,mts,cts}"],
+    include: [
+      "./src/**/*.{test,tests,spec}.{js,mjs,cjs,ts,tsx,mts,cts}",
+      "./docs/**/*.{test,tests,spec}.{js,mjs,cjs,ts,tsx,mts,cts}",
+    ],
     reporters: ["default"],
     setupFiles: "./src/setupTests.ts",
     // Avoid Node worker thread pool; use forked processes instead for stability in CI

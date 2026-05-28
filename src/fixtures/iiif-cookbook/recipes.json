@@ -453,5 +453,12 @@
     "resource": "http://localhost:3000/manifest/donut/manifest.json",
     "supported": true,
     "category": ["3D"]
+  },
+  {
+    "title": "Pi Pie (3D mesh-selector image annotation)",
+    "id": "http://localhost:3000/manifest/pi-pie/manifest.json",
+    "resource": "http://localhost:3000/manifest/pi-pie/manifest.json",
+    "supported": true,
+    "category": ["3D"]
   }
 ]

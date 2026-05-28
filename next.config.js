@@ -17,6 +17,8 @@ module.exports = (phase) => {
     eslint: {
       ignoreDuringBuilds: true,
     },
-    output: "export",
+    // Static export disables API routes; keep dev as a normal server so
+    // /api/3d-afy/bake works for the local "save as IIIF" flow.
+    ...(isDev ? {} : { output: "export" }),
   });
 };
