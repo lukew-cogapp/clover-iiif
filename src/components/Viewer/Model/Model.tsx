@@ -1,32 +1,48 @@
 import React from "react";
 import dynamic from "next/dynamic";
-import { useGLTF } from "./useGLTF";
+import { useGLTF, DEFAULT_DRACO_DECODER_PATH } from "./useGLTF";
+import type { ModelTextureAnnotation } from "src/hooks/use-iiif/getModelTextureAnnotations";
+
+export const SUPPORTED_3D_FORMATS = [
+  "model/gltf-binary",
+  "model/gltf+json",
+] as const;
 
 const ModelCanvas = dynamic(() => import("./ModelCanvas"), {
   ssr: false,
   loading: () => null,
 });
 
-interface ModelProps {
+export interface ModelProps {
   src: string;
   format?: string;
   ariaLabel: string;
   canvasHeight?: string;
+  autoPlayAnimations?: boolean;
+  autoRotate?: boolean;
+  dracoDecoderPath?: string;
+  environmentIntensity?: number;
+  showGrid?: boolean;
+  textureAnnotations?: ModelTextureAnnotation[];
 }
-
-const SUPPORTED_FORMATS = ["model/gltf-binary", "model/gltf+json"];
 
 const ModelInner: React.FC<ModelProps> = ({
   src,
   format,
   ariaLabel,
   canvasHeight,
+  autoPlayAnimations,
+  autoRotate,
+  dracoDecoderPath = DEFAULT_DRACO_DECODER_PATH,
+  environmentIntensity,
+  showGrid,
+  textureAnnotations,
 }) => {
   const unsupported =
     typeof format === "string" &&
     format.startsWith("model/") &&
-    !SUPPORTED_FORMATS.includes(format);
-  const status = useGLTF(unsupported ? "" : src);
+    !SUPPORTED_3D_FORMATS.includes(format as (typeof SUPPORTED_3D_FORMATS)[number]);
+  const status = useGLTF(unsupported ? "" : src, dracoDecoderPath);
   const containerStyle: React.CSSProperties = {
     width: "100%",
     height: canvasHeight && canvasHeight !== "auto" ? canvasHeight : "100%",
@@ -78,11 +94,23 @@ const ModelInner: React.FC<ModelProps> = ({
   }
 
   return (
-    <ModelCanvas
-      gltf={status.gltf}
-      ariaLabel={ariaLabel}
-      canvasHeight={canvasHeight}
-    />
+    <div
+      className="clover-viewer-model"
+      data-testid="clover-viewer-model"
+      role="img"
+      aria-label={ariaLabel}
+      style={containerStyle}
+    >
+      <ModelCanvas
+        gltf={status.gltf}
+        canvasHeight={canvasHeight}
+        autoPlayAnimations={autoPlayAnimations}
+        autoRotate={autoRotate}
+        environmentIntensity={environmentIntensity}
+        showGrid={showGrid}
+        textureAnnotations={textureAnnotations}
+      />
+    </div>
   );
 };
 

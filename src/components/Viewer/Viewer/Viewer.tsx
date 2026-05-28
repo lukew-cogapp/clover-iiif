@@ -18,6 +18,7 @@ import {
   getPaintingResource,
 } from "src/hooks/use-iiif";
 import { getModelPaintingFallback } from "src/hooks/use-iiif/getModelPaintingFallback";
+import { getPaintingKind } from "src/hooks/use-iiif/getPaintingKind";
 
 import { ContentSearchQuery } from "src/types/annotations";
 import { ErrorBoundary } from "react-error-boundary";
@@ -103,17 +104,9 @@ const Viewer: React.FC<ViewerProps> = ({
     }
 
     if (canvasPainting) {
-      const firstBody = canvasPainting[0];
-      const bodyType = firstBody?.type as string | undefined;
-      const bodyFormat = firstBody?.format;
-      const isModel =
-        bodyType === "Model" ||
-        (typeof bodyFormat === "string" && bodyFormat.startsWith("model/"));
-      const isAV =
-        bodyType === "Sound" || bodyType === "Video";
-
-      setIsAudioVideo(isAV);
-      setPaintingKind(isModel ? "model" : isAV ? "av" : "image");
+      const kind = getPaintingKind(canvasPainting);
+      setIsAudioVideo(kind === "av");
+      setPaintingKind(kind);
       setPainting(canvasPainting);
     }
 

@@ -6,6 +6,13 @@
     },
     "title": "Demo"
   },
+  "model": {
+    "theme": {
+      "layout": "full",
+      "sidebar": false
+    },
+    "title": "3D Models"
+  },
   "contentsearch": {
     "display": "hidden",
     "title": "Content Search",

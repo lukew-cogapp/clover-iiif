@@ -13,6 +13,7 @@ vi.mock("next/dynamic", () => ({
 
 vi.mock("./useGLTF", () => ({
   useGLTF: vi.fn(),
+  DEFAULT_DRACO_DECODER_PATH: "https://example.org/draco/",
 }));
 
 import Model from "./Model";

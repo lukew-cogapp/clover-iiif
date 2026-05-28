@@ -29,6 +29,7 @@ import Toggle from "./Toggle";
 import { getAnimationFrames } from "src/hooks/use-iiif/getAnimationFrames";
 import { getCanvasBehavior } from "src/hooks/use-iiif/getCanvasBehavior";
 import { getLabel } from "src/hooks/use-iiif/getLabel";
+import { getModelTextureAnnotations } from "src/hooks/use-iiif/getModelTextureAnnotations";
 import { getPaintingResource } from "src/hooks/use-iiif";
 import { hashCode } from "src/lib/utils";
 import { getManifestFromAnnotationTarget } from "src/lib/annotation-collection";
@@ -38,7 +39,7 @@ interface PaintingProps {
   annotationResources: AnnotationResources;
   contentSearchResource?: AnnotationPageNormalized;
   isMedia: boolean;
-  paintingKind: "image" | "av" | "model";
+  paintingKind?: "image" | "av" | "model";
   painting: LabeledIIIFExternalWebResource[];
 }
 
@@ -47,7 +48,7 @@ const Painting: React.FC<PaintingProps> = ({
   annotationResources,
   contentSearchResource,
   isMedia,
-  paintingKind,
+  paintingKind = "image",
   painting,
 }) => {
   const [annotationIndex, setAnnotationIndex] = useState<number>(0);
@@ -120,6 +121,10 @@ const Painting: React.FC<PaintingProps> = ({
 
   const activePainting = painting?.[annotationIndex];
   const isModel = paintingKind === "model";
+  const modelTextureAnnotations = useMemo(
+    () => (isModel ? getModelTextureAnnotations(vault, activeCanvas) : []),
+    [isModel, vault, activeCanvas],
+  );
 
   const frameInterval =
     isAnimationMode && canvasDuration > 0 && totalFrames > 0
@@ -468,6 +473,12 @@ const Painting: React.FC<PaintingProps> = ({
                 : "3D model"
             }
             canvasHeight={configOptions.canvasHeight}
+            autoPlayAnimations={configOptions.threeD?.autoPlayAnimations}
+            autoRotate={configOptions.threeD?.autoRotate}
+            dracoDecoderPath={configOptions.threeD?.dracoDecoderPath}
+            environmentIntensity={configOptions.threeD?.environmentIntensity}
+            showGrid={configOptions.threeD?.showGrid}
+            textureAnnotations={modelTextureAnnotations}
           />
         )}
         {!showPlaceholder &&

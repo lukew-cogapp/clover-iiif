@@ -59,6 +59,13 @@ export type ViewerConfigOptions = {
   showTitle?: boolean;
   customLoadingComponent?: React.ComponentType;
   withCredentials?: boolean;
+  threeD?: {
+    autoPlayAnimations?: boolean;
+    autoRotate?: boolean;
+    dracoDecoderPath?: string;
+    environmentIntensity?: number;
+    showGrid?: boolean;
+  };
   localeText?: {
     contentSearch?: {
       tabLabel?: string;
@@ -135,6 +142,14 @@ const defaultConfigOptions: ViewerConfigOptions = {
   showDownload: true,
   showIIIFBadge: true,
   showTitle: true,
+  threeD: {
+    autoPlayAnimations: false,
+    autoRotate: false,
+    dracoDecoderPath:
+      "https://www.gstatic.com/draco/versioned/decoders/1.5.7/",
+    environmentIntensity: 0.6,
+    showGrid: false,
+  },
   withCredentials: false,
 };
 

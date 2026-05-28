@@ -53,4 +53,47 @@ describe("getPaintingResource()", () => {
     );
     expect(result).toBeUndefined();
   });
+
+  test("accepts Model bodies (Presi 4 3D draft)", async () => {
+    const vault = new Vault();
+    const modelManifest = {
+      "@context": "http://iiif.io/api/presentation/3/context.json",
+      id: "https://test.org/3d/manifest",
+      type: "Manifest",
+      label: { none: ["3D"] },
+      items: [
+        {
+          id: "https://test.org/3d/canvas/0",
+          type: "Canvas",
+          height: 1000,
+          width: 1000,
+          items: [
+            {
+              id: "https://test.org/3d/canvas/0/page/0",
+              type: "AnnotationPage",
+              items: [
+                {
+                  id: "https://test.org/3d/canvas/0/anno/0",
+                  type: "Annotation",
+                  motivation: "painting",
+                  body: {
+                    id: "https://test.org/3d/model.glb",
+                    type: "Model",
+                    format: "model/gltf-binary",
+                  },
+                  target: "https://test.org/3d/canvas/0",
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+    await vault.loadManifest("", modelManifest);
+
+    const result = getPaintingResource(vault, "https://test.org/3d/canvas/0");
+    expect(result).toBeDefined();
+    expect(result?.[0].type).toBe("Model");
+    expect(result?.[0].format).toBe("model/gltf-binary");
+  });
 });

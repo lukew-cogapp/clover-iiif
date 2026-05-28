@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { GLTF } from "three/examples/jsm/loaders/GLTFLoader.js";
 
-const DRACO_DECODER_PATH =
+export const DEFAULT_DRACO_DECODER_PATH =
   "https://www.gstatic.com/draco/versioned/decoders/1.5.7/";
 
 export type ModelLoadStatus =
@@ -9,7 +9,10 @@ export type ModelLoadStatus =
   | { kind: "loaded"; gltf: GLTF }
   | { kind: "error"; error: Error };
 
-export const useGLTF = (url: string): ModelLoadStatus => {
+export const useGLTF = (
+  url: string,
+  dracoDecoderPath: string = DEFAULT_DRACO_DECODER_PATH,
+): ModelLoadStatus => {
   const [status, setStatus] = useState<ModelLoadStatus>({
     kind: "loading",
     progress: 0,
@@ -30,7 +33,7 @@ export const useGLTF = (url: string): ModelLoadStatus => {
 
       const loader = new GLTFLoader();
       const draco = new DRACOLoader();
-      draco.setDecoderPath(DRACO_DECODER_PATH);
+      draco.setDecoderPath(dracoDecoderPath);
       loader.setDRACOLoader(draco);
       dispose = () => draco.dispose();
 
@@ -66,7 +69,7 @@ export const useGLTF = (url: string): ModelLoadStatus => {
       cancelled = true;
       dispose?.();
     };
-  }, [url]);
+  }, [url, dracoDecoderPath]);
 
   return status;
 };

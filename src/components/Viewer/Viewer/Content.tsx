@@ -34,7 +34,7 @@ export interface ViewerContentProps {
   painting: IIIFExternalWebResource[];
   items: Canvas[];
   isAudioVideo: boolean;
-  paintingKind: "image" | "av" | "model";
+  paintingKind?: "image" | "av" | "model";
 }
 
 const ViewerContent: React.FC<ViewerContentProps> = ({

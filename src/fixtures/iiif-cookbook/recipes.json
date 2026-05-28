@@ -446,5 +446,12 @@
     "resource": "https://bl-3d.netlify.app/collection/jane-austen-writing-desk/index.json",
     "supported": true,
     "category": ["3D"]
+  },
+  {
+    "title": "Donut + Recipe (3D mesh-selector texture annotation)",
+    "id": "http://localhost:3000/manifest/donut/manifest.json",
+    "resource": "http://localhost:3000/manifest/donut/manifest.json",
+    "supported": true,
+    "category": ["3D"]
   }
 ]

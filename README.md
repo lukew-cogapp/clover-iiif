@@ -15,6 +15,14 @@ For full documentation, visit [samvera-labs.github.io/clover-iiif](https://samve
 - React: 18 and 19 are supported (`react` and `react-dom` `^18.2.0 || ^19.0.0`).
 - Node: 20.5.0 (see `.tool-versions`).
 
+### 3D models (Phase 1)
+
+Clover renders glTF / glb painting bodies via three.js + `@react-three/fiber`. See [the 3D Models docs page](https://samvera-labs.github.io/clover-iiif/docs/viewer/model) for the manifest shape, supported formats, and `options.threeD.*` configuration.
+
+`three` (~170 KB gzip) and `@react-three/fiber` (~30 KB gzip) are code-split via `next/dynamic` and only loaded when a Model body is encountered, so manifests without 3D content do not pay this cost.
+
+`@react-three/fiber` is pinned to `^8` because `^9` requires React 19; the pin will be lifted when Clover drops React 18 support.
+
 ### Test Compatibility Locally
 
 You can validate React 19 and 18 + Next builds using the included sidecar examples:

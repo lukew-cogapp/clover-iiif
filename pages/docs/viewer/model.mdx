@@ -1,0 +1,128 @@
+import Viewer from "docs/components/DynamicImports/Viewer";
+import CallToAction from "docs/components/CallToAction";
+
+## 3D Models
+
+<br />
+
+<CallToAction href="/docs/viewer" text="Docs" size="small" />
+
+Clover renders glTF (`.gltf`) and glTF-Binary (`.glb`) painting bodies via
+[three.js](https://threejs.org) and
+[@react-three/fiber](https://r3f.docs.pmnd.rs). Detection is based on a
+canvas painting annotation whose `body.type` is `"Model"`, or whose
+`body.format` starts with `model/`.
+
+This implementation tracks the
+[IIIF 3D Technical Specification Group](https://iiif.io/community/groups/3d/tsg/)
+and the
+[Presentation 4.0 alpha](https://iiif.io/api/presentation/4.0/) draft.
+Only the flat-canvas pattern (Model body painted onto a Canvas) is
+supported in this Phase 1 release. The Presi 4 `Scene` container and
+3D-specific resources (Lights, Cameras, Audio Emitters, scene
+annotations, transforms) are not yet rendered.
+
+### Manifest shape
+
+```json
+{
+  "type": "Canvas",
+  "items": [
+    {
+      "type": "AnnotationPage",
+      "items": [
+        {
+          "type": "Annotation",
+          "motivation": "painting",
+          "body": {
+            "id": "https://example.org/model.glb",
+            "type": "Model",
+            "format": "model/gltf-binary"
+          },
+          "target": "https://example.org/canvas/1"
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Supported formats
+
+- `model/gltf-binary` (`.glb`)
+- `model/gltf+json` (`.gltf`)
+
+DRACO mesh compression is supported via Google's hosted decoder (see
+`options.threeD.dracoDecoderPath` below to override). Other formats
+(USDZ, OBJ, PLY, FBX, STL, etc.) are not supported and will surface an
+"Unsupported 3D format" message in place of the canvas.
+
+### Configuration
+
+All 3D-specific options live under `options.threeD`:
+
+| Option | Default | Description |
+|---|---|---|
+| `autoPlayAnimations` | `false` | Play the first glTF animation clip on load. |
+| `autoRotate` | `false` | Continuously orbit the camera around the model. |
+| `dracoDecoderPath` | gstatic CDN | URL to the DRACO decoder bundle (override for offline / self-hosted decoders). |
+| `environmentIntensity` | `0.6` | Hemisphere + ambient light intensity. |
+| `showGrid` | `false` | Render a reference grid under the model. |
+
+### Texture annotations (experimental, Clover extension)
+
+A painting annotation may also target a SpecificResource with a
+FragmentSelector whose `conformsTo` is the Clover 3D mesh-selector
+extension URL. The body (`TextualBody` rendered to a `CanvasTexture`,
+or an `Image` loaded via `TextureLoader`) is applied to one or more
+meshes of the glTF scene as a material map.
+
+```json
+{
+  "type": "Annotation",
+  "motivation": "painting",
+  "body": {
+    "type": "TextualBody",
+    "value": "1. Bloom yeast in warm milk\\n2. ...",
+    "format": "text/plain",
+    "language": "en"
+  },
+  "target": {
+    "type": "SpecificResource",
+    "source": "https://example.org/canvas/1",
+    "selector": {
+      "type": "FragmentSelector",
+      "conformsTo": "https://iiif.io/api/extension/3d-mesh-selector/",
+      "value": "mesh=DonutMesh&channel=baseColor"
+    }
+  }
+}
+```
+
+Selector value pairs:
+
+- `mesh=<name>` (optional, omit to apply to every mesh in the scene)
+- `channel=baseColor|emissive|normal` (default `baseColor`)
+
+This shape is not part of the IIIF 3D draft; it is a Clover-only
+proposal that may inform future spec work.
+
+### Bundle impact
+
+three.js (~170 KB gzip) and `@react-three/fiber@8` (~30 KB gzip) are
+loaded lazily via `next/dynamic` only when a Model body is encountered.
+Manifests with no 3D content do not pay this cost.
+
+### Example
+
+<Viewer
+  iiifContent="https://bl-3d.netlify.app/collection/jane-austen-writing-desk/index.json"
+  options={{
+    canvasHeight: "640px",
+    showIIIFBadge: false,
+    threeD: {
+      autoRotate: true,
+      environmentIntensity: 0.8,
+    },
+  }}
+/>
