@@ -461,6 +461,7 @@ const Painting: React.FC<PaintingProps> = ({
         {!showPlaceholder && !customDisplay && isModel && activePainting?.id && (
           <Model
             src={activePainting.id}
+            format={activePainting?.format}
             ariaLabel={
               activePainting?.label
                 ? String(getLabel(activePainting.label))

@@ -36,6 +36,19 @@ const ModelInner: React.FC<ModelProps> = ({
     justifyContent: "center",
   };
 
+  if (unsupported) {
+    return (
+      <div
+        className="clover-viewer-model-unsupported"
+        data-testid="clover-viewer-model-unsupported"
+        style={containerStyle}
+        role="alert"
+      >
+        Unsupported 3D format: {format}
+      </div>
+    );
+  }
+
   if (status.kind === "loading") {
     return (
       <div
