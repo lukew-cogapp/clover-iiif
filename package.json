@@ -101,6 +101,7 @@
     "@radix-ui/react-select": "^2.1.2",
     "@radix-ui/react-switch": "^1.1.1",
     "@radix-ui/react-tabs": "^1.1.1",
+    "@react-three/fiber": "^8.18.0",
     "@stitches/react": "^1.2.8",
     "dompurify": "^3.0.2",
     "embla-carousel-react": "^8.6.0",
@@ -115,6 +116,7 @@
     "react-error-boundary": "^4.1.2",
     "react-i18next": "^15.1.1",
     "react-lazy-load-image-component": "^1.6.2",
+    "three": "^0.184.0",
     "uuid": "^9.0.1"
   },
   "devDependencies": {
@@ -130,6 +132,7 @@
     "@types/openseadragon": "^3.0.10",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
+    "@types/three": "^0.184.1",
     "@typescript-eslint/eslint-plugin": "^6.21.0",
     "@vitejs/plugin-react": "^4.3.3",
     "@vitest/coverage-v8": "2.1.5",

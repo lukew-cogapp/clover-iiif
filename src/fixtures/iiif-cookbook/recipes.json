@@ -439,5 +439,12 @@
     "resource": "https://iiif.io/api/cookbook/recipe/0006-text-language/manifest.json",
     "supported": false,
     "category": ["Content State"]
+  },
+  {
+    "title": "Jane Austen's Writing Desk (3D / glTF)",
+    "id": "https://bl-3d.netlify.app/collection/jane-austen-writing-desk/",
+    "resource": "https://bl-3d.netlify.app/collection/jane-austen-writing-desk/index.json",
+    "supported": true,
+    "category": ["3D"]
   }
 ]

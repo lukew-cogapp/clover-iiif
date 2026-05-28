@@ -11,7 +11,8 @@ export type CookbookRecipeCategory =
   | "Image"
   | "Audio/Visual"
   | "Annotation"
-  | "Content State";
+  | "Content State"
+  | "3D";
 
 export interface CookbookRecipe {
   title: string;

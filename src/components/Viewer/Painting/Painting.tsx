@@ -22,11 +22,13 @@ import AnimationControls, {
 import { AnnotationResources } from "src/types/annotations";
 import ImageViewer from "src/components/Image";
 import { LabeledIIIFExternalWebResource } from "src/types/presentation-3";
+import Model from "src/components/Viewer/Model/Model";
 import PaintingPlaceholder from "./Placeholder";
 import Player from "src/components/Viewer/Player/Player";
 import Toggle from "./Toggle";
 import { getAnimationFrames } from "src/hooks/use-iiif/getAnimationFrames";
 import { getCanvasBehavior } from "src/hooks/use-iiif/getCanvasBehavior";
+import { getLabel } from "src/hooks/use-iiif/getLabel";
 import { getPaintingResource } from "src/hooks/use-iiif";
 import { hashCode } from "src/lib/utils";
 import { getManifestFromAnnotationTarget } from "src/lib/annotation-collection";
@@ -36,6 +38,7 @@ interface PaintingProps {
   annotationResources: AnnotationResources;
   contentSearchResource?: AnnotationPageNormalized;
   isMedia: boolean;
+  paintingKind: "image" | "av" | "model";
   painting: LabeledIIIFExternalWebResource[];
 }
 
@@ -44,6 +47,7 @@ const Painting: React.FC<PaintingProps> = ({
   annotationResources,
   contentSearchResource,
   isMedia,
+  paintingKind,
   painting,
 }) => {
   const [annotationIndex, setAnnotationIndex] = useState<number>(0);
@@ -113,6 +117,9 @@ const Painting: React.FC<PaintingProps> = ({
   const hasTemporalAnnotations = animationFrames.length > 0;
   const isAnimationMode = hasTemporalAnnotations;
   const hasChoice = Boolean(painting?.length > 1) && !isAnimationMode;
+
+  const activePainting = painting?.[annotationIndex];
+  const isModel = paintingKind === "model";
 
   const frameInterval =
     isAnimationMode && canvasDuration > 0 && totalFrames > 0
@@ -451,8 +458,20 @@ const Painting: React.FC<PaintingProps> = ({
             setIsInteractive={setIsInteractive}
           />
         )}
+        {!showPlaceholder && !customDisplay && isModel && activePainting?.id && (
+          <Model
+            src={activePainting.id}
+            ariaLabel={
+              activePainting?.label
+                ? String(getLabel(activePainting.label))
+                : "3D model"
+            }
+            canvasHeight={configOptions.canvasHeight}
+          />
+        )}
         {!showPlaceholder &&
           !customDisplay &&
+          !isModel &&
           (isMedia ? (
             <Player
               allSources={painting}

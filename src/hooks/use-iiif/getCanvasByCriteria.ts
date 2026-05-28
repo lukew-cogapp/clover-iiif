@@ -4,9 +4,9 @@ import {
   Canvas,
   CanvasNormalized,
   ContentResource,
-  ExternalResourceTypes,
   IIIFExternalWebResource,
 } from "@iiif/presentation-3";
+import { ExternalResourceTypes } from "src/types/presentation-3";
 import { isImageApiSelector } from "@iiif/helpers";
 
 export interface CanvasEntity {

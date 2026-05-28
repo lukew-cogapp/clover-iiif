@@ -9,7 +9,7 @@ export const getPaintingResource = (
     vault,
     { id, type: "Canvas" },
     "painting",
-    ["Image", "Sound", "Video"],
+    ["Image", "Sound", "Video", "Model"],
   );
 
   if (canvasEntity.annotations.length === 0) return;

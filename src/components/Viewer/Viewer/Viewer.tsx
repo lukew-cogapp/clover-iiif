@@ -17,6 +17,7 @@ import {
   getContentSearchResources,
   getPaintingResource,
 } from "src/hooks/use-iiif";
+import { getModelPaintingFallback } from "src/hooks/use-iiif/getModelPaintingFallback";
 
 import { ContentSearchQuery } from "src/types/annotations";
 import { ErrorBoundary } from "react-error-boundary";
@@ -64,6 +65,9 @@ const Viewer: React.FC<ViewerProps> = ({
    * Local state
    */
   const [isAudioVideo, setIsAudioVideo] = useState(false);
+  const [paintingKind, setPaintingKind] = useState<
+    "image" | "av" | "model"
+  >("image");
   const [painting, setPainting] = useState<IIIFExternalWebResource[]>([]);
   const [annotationResources, setAnnotationResources] =
     useState<AnnotationResources>([]);
@@ -92,16 +96,24 @@ const Viewer: React.FC<ViewerProps> = ({
   useEffect(() => {}, [isSmallViewport]);
 
   useEffect(() => {
-    const canvasPainting = getPaintingResource(vault, activeCanvas);
+    let canvasPainting = getPaintingResource(vault, activeCanvas);
+    if (!canvasPainting || canvasPainting.length === 0) {
+      const modelFallback = getModelPaintingFallback(vault, activeCanvas);
+      if (modelFallback) canvasPainting = modelFallback;
+    }
 
     if (canvasPainting) {
-      setIsAudioVideo(
-        ["Sound", "Video"].indexOf(
-          canvasPainting[0].type as ExternalResourceTypes,
-        ) > -1
-          ? true
-          : false,
-      );
+      const firstBody = canvasPainting[0];
+      const bodyType = firstBody?.type as string | undefined;
+      const bodyFormat = firstBody?.format;
+      const isModel =
+        bodyType === "Model" ||
+        (typeof bodyFormat === "string" && bodyFormat.startsWith("model/"));
+      const isAV =
+        bodyType === "Sound" || bodyType === "Video";
+
+      setIsAudioVideo(isAV);
+      setPaintingKind(isModel ? "model" : isAV ? "av" : "image");
       setPainting(canvasPainting);
     }
 
@@ -192,6 +204,7 @@ const Viewer: React.FC<ViewerProps> = ({
             initialSearchQuery={iiifContentSearchQuery?.q}
             items={manifest.items}
             isAudioVideo={isAudioVideo}
+            paintingKind={paintingKind}
           />
         </Collapsible.Root>
       </Wrapper>
