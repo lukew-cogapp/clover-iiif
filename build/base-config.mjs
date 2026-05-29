@@ -22,6 +22,20 @@ const FORCED_EXTERNALS = new Set([
   // keeps it out of the always-bundled `dist/*/index.{mjs,cjs}` output and
   // lets consumer bundlers (or direct ESM resolution) load it on demand.
   "hls.js",
+  // The react-three stack MUST stay external. @react-three/fiber bundles its
+  // own react-reconciler, which reaches into React internals
+  // (ReactCurrentBatchConfig). If bundled here it captures a different React
+  // copy than the host app, so `.transition` reads undefined and the 3D
+  // canvas crashes on mount. Externalising lets the consumer resolve a single
+  // React for both the app and the reconciler.
+  "@react-three/fiber",
+  "react-reconciler",
+  "three",
+  "scheduler",
+  "its-fine",
+  "react-use-measure",
+  "suspend-react",
+  "zustand",
 ]);
 
 function getPackageName(id) {
