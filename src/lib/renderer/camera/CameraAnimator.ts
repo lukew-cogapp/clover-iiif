@@ -8,10 +8,11 @@ import type { Point } from "src/lib/renderer/math/affine";
 /**
  * Eases the camera toward a target, frame by frame.
  *
- * Exponential approach rather than a fixed-duration tween: a new target mid-flight
- * (another wheel notch, another key press) simply re-aims, with no restart and no
- * discontinuity in velocity. Zoom interpolates in log space so each frame is the same
- * *ratio* of change, which is how a zoom reads to the eye.
+ * Each target is reached in exactly `animationTime` seconds along
+ * `(1 − e^(−s·t)) / (1 − e^(−s))`, where `t` is the fraction of that time elapsed and `s`
+ * the stiffness. A new target mid-flight (another wheel notch, another drag event)
+ * restarts the curve from where the camera is. Zoom
+ * interpolates in log space so each frame is the same *ratio* of change.
  *
  * An anchored target ("zoom about this point") recomputes the centre every frame so the
  * anchor holds still on screen throughout, not just once the animation lands.
@@ -22,20 +23,27 @@ export interface CameraTarget {
   anchor?: { world: Point; screen: Point };
 }
 
-/** Seconds for the remaining distance to shrink by a factor of e. */
-const DEFAULT_TIME_CONSTANT = 0.09;
-const ZOOM_EPSILON = 1e-4;
+const DEFAULT_ANIMATION_TIME = 1.2;
+const DEFAULT_STIFFNESS = 6.5;
 const PIXEL_EPSILON = 0.05;
-const ROTATION_EPSILON = 1e-4;
 
 export class CameraAnimator {
   current: CameraState;
+  private start: CameraState;
   private target: CameraTarget | null = null;
-  private timeConstant: number;
+  private elapsed = 0;
+  private animationTime: number;
+  private stiffness: number;
 
-  constructor(initial: CameraState, timeConstant = DEFAULT_TIME_CONSTANT) {
+  constructor(
+    initial: CameraState,
+    animationTime = DEFAULT_ANIMATION_TIME,
+    stiffness = DEFAULT_STIFFNESS,
+  ) {
     this.current = { ...initial };
-    this.timeConstant = timeConstant;
+    this.start = { ...initial };
+    this.animationTime = Math.max(0, animationTime);
+    this.stiffness = stiffness;
   }
 
   get animating(): boolean {
@@ -47,11 +55,7 @@ export class CameraAnimator {
     return this.target ? { ...this.target.state } : { ...this.current };
   }
 
-  setTimeConstant(seconds: number): void {
-    this.timeConstant = Math.max(0, seconds);
-  }
-
-  /** Jump, cancelling any animation. Used by drags, which must track the pointer 1:1. */
+  /** Jump, cancelling any animation. Used by drags that track the pointer 1:1. */
   set(state: CameraState): void {
     this.current = { ...state };
     this.target = null;
@@ -62,7 +66,7 @@ export class CameraAnimator {
     viewport: ViewportSize,
     immediate = false,
   ): void {
-    if (immediate || this.timeConstant === 0) {
+    if (immediate || this.animationTime === 0) {
       this.set(target.state);
       return;
     }
@@ -70,8 +74,8 @@ export class CameraAnimator {
     /*
      * An anchor is only honoured if it agrees with the target. When the caller clamped
      * the target centre (zooming out past the edge of the world), the anchored path
-     * would land somewhere other than the target and never settle — so fall back to a
-     * plain centre interpolation instead.
+     * would land somewhere other than the target — so fall back to a plain centre
+     * interpolation instead.
      */
     let anchor = target.anchor;
     if (anchor) {
@@ -88,6 +92,8 @@ export class CameraAnimator {
       if (miss > PIXEL_EPSILON) anchor = undefined;
     }
 
+    this.start = { ...this.current };
+    this.elapsed = 0;
     this.target = { state: { ...target.state }, anchor };
   }
 
@@ -103,43 +109,36 @@ export class CameraAnimator {
     const target = this.target;
     if (!target) return false;
 
-    const k = 1 - Math.exp(-Math.max(dt, 0) / this.timeConstant);
-    const from = this.current;
-    const to = target.state;
+    this.elapsed += Math.max(dt, 0);
+    const t = this.elapsed / this.animationTime;
+    if (t >= 1) {
+      this.current = { ...target.state };
+      this.target = null;
+      return false;
+    }
 
+    const s = this.stiffness;
+    const k = (1 - Math.exp(-s * t)) / (1 - Math.exp(-s));
+    const from = this.start;
+    const to = target.state;
     const zoom = Math.exp(
       Math.log(from.zoom) + (Math.log(to.zoom) - Math.log(from.zoom)) * k,
     );
     const rotation = from.rotation + (to.rotation - from.rotation) * k;
-
-    let center: Point;
-    if (target.anchor) {
-      center = anchoredCenter(
-        target.anchor.world,
-        target.anchor.screen,
-        zoom,
-        rotation,
-        viewport,
-      );
-    } else {
-      center = {
-        x: from.x + (to.x - from.x) * k,
-        y: from.y + (to.y - from.y) * k,
-      };
-    }
+    const center = target.anchor
+      ? anchoredCenter(
+          target.anchor.world,
+          target.anchor.screen,
+          zoom,
+          rotation,
+          viewport,
+        )
+      : {
+          x: from.x + (to.x - from.x) * k,
+          y: from.y + (to.y - from.y) * k,
+        };
 
     this.current = { x: center.x, y: center.y, zoom, rotation };
-
-    const settled =
-      Math.abs(Math.log(to.zoom / zoom)) < ZOOM_EPSILON &&
-      Math.abs(to.rotation - rotation) < ROTATION_EPSILON &&
-      Math.hypot(to.x - center.x, to.y - center.y) * zoom < PIXEL_EPSILON;
-
-    if (settled) {
-      this.current = { ...to };
-      this.target = null;
-      return false;
-    }
     return true;
   }
 }

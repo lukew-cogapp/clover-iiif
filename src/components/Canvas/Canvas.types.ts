@@ -43,8 +43,12 @@ export interface CloverCanvasOptions {
   maxZoomPixelRatio?: number;
   /** Smallest zoom, as a fraction of the home zoom. Default 0.9. */
   minZoomImageRatio?: number;
-  /** Seconds for an animation to close most of its distance. 0 disables easing. */
+  /** Seconds each animation (zoom, glide, home) takes. Default 0.6; 0 disables easing. */
   animationTime?: number;
+  /** How much of an animation's movement comes early: higher starts faster and slows longer. Default 6.5. */
+  springStiffness?: number;
+  /** Hold the image inside its bounds while dragging. Default true; false lets it spring back on release. */
+  constrainDuringPan?: boolean;
   /**
    * Milliseconds the controls and navigator stay after the pointer stops moving, as the
    * Player's `hideDelay`. Default 2000; `Infinity` keeps them once shown.

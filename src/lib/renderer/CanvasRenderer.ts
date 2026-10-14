@@ -26,7 +26,7 @@ import {
   type GestureOptions,
   type GestureTarget,
 } from "src/lib/renderer/input/GestureController";
-import { TileCache } from "src/lib/renderer/io/TileCache";
+import { TileCache, type TileWant } from "src/lib/renderer/io/TileCache";
 import { type LoadedImage, loadImage } from "src/lib/renderer/io/decode";
 import { FrameLoop } from "src/lib/renderer/loop/FrameLoop";
 import {
@@ -64,8 +64,15 @@ export interface CanvasRendererOptions {
   minZoomImageRatio?: number;
   /** Fraction of the viewport left clear around the home view. */
   homePadding?: number;
-  /** Seconds for an animation to close most of its distance. 0 disables animation. */
+  /** Seconds each animation (zoom, glide, home) takes. 0 disables animation. */
   animationTime?: number;
+  /** How much of an animation's movement comes early: higher starts faster and slows longer. */
+  springStiffness?: number;
+  /**
+   * Hold the image inside its bounds while dragging. Off, a drag may carry it past the
+   * edge and it springs back on release.
+   */
+  constrainDuringPan?: boolean;
   /** Send cookies with `info.json` and image requests. */
   withCredentials?: boolean;
   /** Extra headers for `info.json` and image requests (these force a CORS preflight). */
@@ -97,7 +104,9 @@ const DEFAULTS = {
   maxZoomPixelRatio: 1.1,
   minZoomImageRatio: 0.9,
   homePadding: 0,
-  animationTime: 0.09,
+  animationTime: 0.6,
+  springStiffness: 6.5,
+  constrainDuringPan: true,
   withCredentials: false,
   requestHeaders: {} as Record<string, string>,
   byteBudget: 192 * 1024 * 1024,
@@ -159,6 +168,8 @@ export class CanvasRenderer implements GestureTarget {
   private opened = false;
   /** True until the reader moves the camera; a resize then refits rather than crops. */
   private atHome = true;
+  /** A pointer is down. Without `constrainDuringPan`, the centre may leave the world. */
+  private interacting = false;
   private lastEmitted: CameraState | null = null;
   private generation = 0;
   private listeners = new Map<CanvasRendererEvent, Set<Listener>>();
@@ -183,6 +194,7 @@ export class CanvasRenderer implements GestureTarget {
     this.camera = new CameraAnimator(
       { x: 0, y: 0, zoom: 1, rotation: 0 },
       this.options.animationTime,
+      this.options.springStiffness,
     );
     this.loop = new FrameLoop(this.tick);
     this.gestureOptions = stripUndefined(options.gestures ?? {});
@@ -201,7 +213,12 @@ export class CanvasRenderer implements GestureTarget {
       maxInFlight: this.options.maxInFlight,
     });
 
-    this.acquireBackend();
+    /*
+     * With an IntersectionObserver, the context is taken on the first report that the
+     * stage is on screen. Taking it here would let a page of off-screen instances
+     * exhaust the browser's context cap and evict the one the reader is looking at.
+     */
+    if (typeof IntersectionObserver === "undefined") this.acquireBackend();
     this.measure();
     this.observe();
   }
@@ -442,11 +459,6 @@ export class CanvasRenderer implements GestureTarget {
     this.animateTo(this.constrain({ ...base, ...point }), immediate);
   }
 
-  flick(vx: number, vy: number): void {
-    // Glide the distance the release velocity would cover in a quarter second.
-    this.panBy(vx * 0.25, vy * 0.25, true);
-  }
-
   rotateBy(degrees: number): void {
     const base = this.camera.destination;
     this.setRotation((base.rotation * 180) / Math.PI + degrees);
@@ -477,8 +489,15 @@ export class CanvasRenderer implements GestureTarget {
   }
 
   setInteracting(interacting: boolean): void {
-    // A pointer is down: the camera tracks it 1:1, so cancel any animation in flight.
-    if (interacting) this.camera.stop();
+    this.interacting = interacting;
+    // A press catches a glide in flight.
+    if (interacting) {
+      this.camera.stop();
+      return;
+    }
+    const destination = this.camera.destination;
+    const settled = this.constrain(destination);
+    if (!sameCamera(destination, settled)) this.animateTo(settled, false);
   }
 
   worldToScreenPoint(point: Point): Point {
@@ -574,16 +593,27 @@ export class CanvasRenderer implements GestureTarget {
     const animating = this.camera.step(dt, this.viewport);
     const camera = this.camera.current;
 
-    const plan = planFrame({
+    const input = {
       items: this.items,
-      camera,
       viewport: this.viewport,
       pixelRatio: this.pixelRatio,
       getTile: this.getTile,
       wantOverview: Boolean(this.navigator),
-    });
+    };
+    const plan = planFrame({ ...input, camera });
+    /*
+     * Mid-animation, also want the tiles where the camera is heading. The levels passed
+     * through on the way change every frame and are aborted as soon as they are left, so
+     * without this the sharp tiles only start loading once the camera stops.
+     */
+    const wants = animating
+      ? mergeWants(
+          plan.wants,
+          planFrame({ ...input, camera: this.camera.destination }).wants,
+        )
+      : plan.wants;
     this.cache.update(
-      plan.wants.filter((want) => !want.url.startsWith(MEDIA_KEY_PREFIX)),
+      wants.filter((want) => !want.url.startsWith(MEDIA_KEY_PREFIX)),
     );
     this.paint(plan.draws);
     this.overlays.position(camera, this.viewport);
@@ -763,6 +793,9 @@ export class CanvasRenderer implements GestureTarget {
     const zoom = allowBeyondLimits
       ? clamp(state.zoom, min, Math.max(max, state.zoom))
       : clamp(state.zoom, min, max);
+    if (this.interacting && !this.options.constrainDuringPan) {
+      return { ...state, zoom };
+    }
     return {
       ...state,
       zoom,
@@ -937,6 +970,18 @@ export class CanvasRenderer implements GestureTarget {
   private emit(event: CanvasRendererEvent, detail?: unknown): void {
     this.listeners.get(event)?.forEach((listener) => listener(detail));
   }
+}
+
+/** Both lists in priority order, each URL once at its most urgent. */
+function mergeWants(a: TileWant[], b: TileWant[]): TileWant[] {
+  const seen = new Set<string>();
+  return [...a, ...b]
+    .sort((x, y) => x.priority - y.priority)
+    .filter((want) => {
+      if (seen.has(want.url)) return false;
+      seen.add(want.url);
+      return true;
+    });
 }
 
 function prefersReducedMotion(): boolean {
