@@ -201,7 +201,12 @@ export class CanvasRenderer implements GestureTarget {
       maxInFlight: this.options.maxInFlight,
     });
 
-    this.acquireBackend();
+    /*
+     * With an IntersectionObserver, the context is taken on the first report that the
+     * stage is on screen. Taking it here would let a page of off-screen instances
+     * exhaust the browser's context cap and evict the one the reader is looking at.
+     */
+    if (typeof IntersectionObserver === "undefined") this.acquireBackend();
     this.measure();
     this.observe();
   }

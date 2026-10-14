@@ -1,3 +1,4 @@
+import { stubViewport } from "src/components/Canvas/testing/viewport";
 import { GOTTINGEN_V2_1, GOTTINGEN_V3 } from "src/fixtures/iiif-image/info";
 import { CanvasRenderer } from "src/lib/renderer/CanvasRenderer";
 import { clearInfoCache } from "src/lib/renderer/sources/imageService";
@@ -48,8 +49,10 @@ const frames = (n = 3) =>
 
 let fake: FakeGl;
 let webgl = true;
+let viewport: ReturnType<typeof stubViewport>;
 
 beforeEach(() => {
+  viewport = stubViewport();
   fake = createFakeGl();
   webgl = true;
   vi.stubGlobal("requestAnimationFrame", (cb: FrameRequestCallback) =>
@@ -73,6 +76,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  viewport.restore();
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
   clearInfoCache();
@@ -167,6 +171,18 @@ describe("CanvasRenderer", () => {
     const { home, min } = renderer.getZoomLimits();
     expect(renderer.getCamera().zoom).toBe(min);
     expect(min).toBeCloseTo(home * 0.9);
+    renderer.dispose();
+  });
+
+  it("takes no WebGL context until it is on screen", async () => {
+    viewport.restore();
+    viewport = stubViewport({ onScreen: false });
+    const el = host();
+    const renderer = new CanvasRenderer(el, { animationTime: 0 });
+    expect(renderer.backendKind).toBe("none");
+
+    viewport.scrollIntoView(el);
+    expect(renderer.backendKind).toBe("webgl2");
     renderer.dispose();
   });
 
