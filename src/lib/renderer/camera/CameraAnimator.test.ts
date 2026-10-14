@@ -69,7 +69,18 @@ describe("CameraAnimator", () => {
     expect(animator.current).toEqual(target);
   });
 
-  it("re-aims mid-flight without restarting", () => {
+  it("follows the spring curve and lands at animationTime", () => {
+    const animator = new CameraAnimator(start, 1.2);
+    animator.animateTo({ state: { ...start, x: 100 } }, viewport);
+    animator.step(0.6, viewport);
+    const s = 6.5;
+    const expected = (100 * (1 - Math.exp(-s * 0.5))) / (1 - Math.exp(-s));
+    expect(animator.current.x).toBeCloseTo(expected, 9);
+    expect(animator.step(0.6, viewport)).toBe(false);
+    expect(animator.current.x).toBe(100);
+  });
+
+  it("re-aims mid-flight from where the camera is", () => {
     const animator = new CameraAnimator(start);
     animator.animateTo({ state: { ...start, x: 100 } }, viewport);
     animator.step(1 / 60, viewport);

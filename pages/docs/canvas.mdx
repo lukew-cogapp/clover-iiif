@@ -467,17 +467,57 @@ import Canvas from "@samvera/clover-iiif/canvas";
 
 ### `options`
 
-| Option               | Default  | Description                                                                            |
-| -------------------- | -------- | -------------------------------------------------------------------------------------- |
-| `backend`            | `"auto"` | `"auto"`, `"webgl2"` or `"canvas2d"`.                                                  |
-| `gestures`           |          | `clickToZoom`, `dblClickToZoom`, `pinchToZoom`, `scrollToZoom` (`false`).              |
-| `maxZoomPixelRatio`  | `1.1`    | Largest zoom, in CSS pixels per image pixel.                                           |
-| `minZoomImageRatio`  | `0.9`    | Smallest zoom, as a fraction of the home zoom.                                         |
-| `animationTime`      | `0.09`   | Easing time constant in seconds. `0` under reduced motion.                             |
-| `hideDelay`          | `2000`   | Milliseconds the controls and navigator stay after the pointer stops, as the Player's. |
-| `withCredentials`    | `false`  | Send cookies with `info.json` and image requests.                                      |
-| `requestHeaders`     |          | Extra headers for those requests (these force a CORS preflight).                       |
-| `media.presentation` | `"dom"`  | `"dom"` places a real `<video>`; `"texture"` draws its frames into the canvas (CORS).  |
+| Option               | Default  | Description                                                                                             |
+| -------------------- | -------- | ------------------------------------------------------------------------------------------------------- |
+| `backend`            | `"auto"` | `"auto"`, `"webgl2"` or `"canvas2d"`.                                                                   |
+| `gestures`           |          | `clickToZoom`, `dblClickToZoom`, `pinchToZoom`, `scrollToZoom` (`false`), and the flick settings below. |
+| `maxZoomPixelRatio`  | `1.1`    | Largest zoom, in CSS pixels per image pixel.                                                            |
+| `minZoomImageRatio`  | `0.9`    | Smallest zoom, as a fraction of the home zoom.                                                          |
+| `animationTime`      | `0.6`    | Seconds each animation (zoom, glide, home) takes. `0` under reduced motion.                             |
+| `springStiffness`    | `6.5`    | How sharply an animation slows into its target.                                                         |
+| `constrainDuringPan` | `true`   | Hold the image inside its bounds while dragging. `false` lets it spring back on release.                |
+| `hideDelay`          | `2000`   | Milliseconds the controls and navigator stay after the pointer stops, as the Player's.                  |
+| `withCredentials`    | `false`  | Send cookies with `info.json` and image requests.                                                       |
+| `requestHeaders`     |          | Extra headers for those requests (these force a CORS preflight).                                        |
+| `media.presentation` | `"dom"`  | `"dom"` places a real `<video>`; `"texture"` draws its frames into the canvas (CORS).                   |
+
+#### Motion
+
+Zooms, glides and the home view ease over `animationTime`, fast at first and slowing into
+place. The `gestures` options for dragging are:
+
+| Gesture option  | Default | Description                                                                                                          |
+| --------------- | ------- | -------------------------------------------------------------------------------------------------------------------- |
+| `flickEnabled`  | `true`  | A mouse or pen drag tracks the pointer and glides on after a fast release. `false` eases the drag and stops with it. |
+| `flickMinSpeed` | `200`   | Release speed, in px/s, below which a drag does not glide.                                                           |
+| `flickMomentum` | `0.25`  | Seconds of release velocity the glide travels.                                                                       |
+
+A finger always tracks 1:1 and glides on a fast release.
+
+To move as `Image` does (OpenSeadragon at its defaults): a 1.2 second ease, a mouse
+drag that eases and stops where the pointer stops, and an image that can be pulled past
+its edge and springs back.
+
+<CanvasRecipe
+  id="image-motion"
+  iiifContent={`${RECIPES}/0005-image-service/manifest.json`}
+  options={{
+    animationTime: 1.2,
+    constrainDuringPan: false,
+    gestures: { flickEnabled: false, flickMinSpeed: 120 },
+  }}
+/>
+
+```jsx
+<Canvas
+  canvases={canvases}
+  options={{
+    animationTime: 1.2,
+    constrainDuringPan: false,
+    gestures: { flickEnabled: false, flickMinSpeed: 120 },
+  }}
+/>
+```
 
 ### `CanvasHandle`
 
