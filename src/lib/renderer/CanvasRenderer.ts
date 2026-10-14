@@ -26,7 +26,7 @@ import {
   type GestureOptions,
   type GestureTarget,
 } from "src/lib/renderer/input/GestureController";
-import { TileCache } from "src/lib/renderer/io/TileCache";
+import { TileCache, type TileWant } from "src/lib/renderer/io/TileCache";
 import { type LoadedImage, loadImage } from "src/lib/renderer/io/decode";
 import { FrameLoop } from "src/lib/renderer/loop/FrameLoop";
 import {
@@ -579,16 +579,27 @@ export class CanvasRenderer implements GestureTarget {
     const animating = this.camera.step(dt, this.viewport);
     const camera = this.camera.current;
 
-    const plan = planFrame({
+    const input = {
       items: this.items,
-      camera,
       viewport: this.viewport,
       pixelRatio: this.pixelRatio,
       getTile: this.getTile,
       wantOverview: Boolean(this.navigator),
-    });
+    };
+    const plan = planFrame({ ...input, camera });
+    /*
+     * Mid-animation, also want the tiles where the camera is heading. The levels passed
+     * through on the way change every frame and are aborted as soon as they are left, so
+     * without this the sharp tiles only start loading once the camera stops.
+     */
+    const wants = animating
+      ? mergeWants(
+          plan.wants,
+          planFrame({ ...input, camera: this.camera.destination }).wants,
+        )
+      : plan.wants;
     this.cache.update(
-      plan.wants.filter((want) => !want.url.startsWith(MEDIA_KEY_PREFIX)),
+      wants.filter((want) => !want.url.startsWith(MEDIA_KEY_PREFIX)),
     );
     this.paint(plan.draws);
     this.overlays.position(camera, this.viewport);
@@ -942,6 +953,18 @@ export class CanvasRenderer implements GestureTarget {
   private emit(event: CanvasRendererEvent, detail?: unknown): void {
     this.listeners.get(event)?.forEach((listener) => listener(detail));
   }
+}
+
+/** Both lists in priority order, each URL once at its most urgent. */
+function mergeWants(a: TileWant[], b: TileWant[]): TileWant[] {
+  const seen = new Set<string>();
+  return [...a, ...b]
+    .sort((x, y) => x.priority - y.priority)
+    .filter((want) => {
+      if (seen.has(want.url)) return false;
+      seen.add(want.url);
+      return true;
+    });
 }
 
 function prefersReducedMotion(): boolean {
